@@ -32,7 +32,7 @@ function daysBetween(a, b) {
   return Math.round((b - a) / (1000 * 60 * 60 * 24));
 }
 
-export default function Timeline({ dayWidth = DAY_WIDTH }) {
+export default function Timeline({ dayWidth = DAY_WIDTH, onBlockOpen }) {
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -256,7 +256,7 @@ export default function Timeline({ dayWidth = DAY_WIDTH }) {
 
       {/* ── Project blocks ── */}
       {positionedBlocks.map((block) => (
-        <Block key={block.id} block={block} height={BLOCK_H} />
+        <Block key={block.id} block={block} height={BLOCK_H} onOpen={onBlockOpen} />
       ))}
     </div>
   );

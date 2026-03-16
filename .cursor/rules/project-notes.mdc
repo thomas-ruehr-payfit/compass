@@ -1,0 +1,37 @@
+---
+description: Quick project note-taking. Detects "projectId: note text" messages and appends a polished, dated note to that project's DESIGN.md.
+alwaysApply: true
+---
+
+# Project Note-taking
+
+When the user's message matches the pattern `{identifier}: {note text}`, treat it as a quick note for a project.
+
+## How to handle it
+
+1. **Identify the project** — match `{identifier}` against block `id` values or labels in `src/data/workload.js` (fuzzy: "cdms", "CDMS", "back office" all resolve). If ambiguous, ask.
+
+2. **Improve the phrasing** — fix capitalisation, tighten the sentence, keep the meaning exactly. Do not add speculation.
+
+3. **Append to `src/data/projects/{id}/DESIGN.md`** under the `## Notes` section (create the section at the end if absent) in this format:
+
+```markdown
+**Mar 16** — Waiting for peer feedback before proceeding.
+```
+
+Use the real current date in `Mon DD` format (e.g. `Mar 16`).
+
+## Examples
+
+| User types | File written |
+|---|---|
+| `cdms: still waiting for answers from my peers` | `**Mar 16** — Still waiting for feedback from peers.` |
+| `orion: kickoff is pushed to next week` | `**Mar 16** — Kickoff has been pushed to next week.` |
+| `unity patterns: finished the first draft of specs` | `**Mar 16** — Completed the first draft of the specs.` |
+
+## Rules
+
+- Only edit the single target `DESIGN.md` — nothing else.
+- Never overwrite existing notes; always append.
+- One bullet per message; don't combine multiple notes.
+- If the project cannot be identified, ask before writing anything.

@@ -14,13 +14,15 @@ function dayCount(start, end) {
   return Math.round((b - a) / (1000 * 60 * 60 * 24)) + 1;
 }
 
-export default function Block({ block, height }) {
+export default function Block({ block, height, onOpen }) {
   const [hovered, setHovered] = useState(false);
   const days = dayCount(block.start, block.end);
   const tooNarrow = block.width < 60;
 
   return (
     <div
+      data-no-pan
+      onClick={() => onOpen?.(block)}
       style={{
         position: 'absolute',
         left: block.left + 3,
@@ -37,7 +39,7 @@ export default function Block({ block, height }) {
         fontSize: 12,
         fontWeight: 500,
         color: '#fff',
-        cursor: 'default',
+        cursor: 'pointer',
         overflow: 'hidden',
         whiteSpace: 'nowrap',
         textOverflow: 'ellipsis',

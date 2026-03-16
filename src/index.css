@@ -17,3 +17,18 @@ html, body, #root {
 ::-webkit-scrollbar {
   display: none;
 }
+
+/* ── Markdown body styles (used inside ProjectModal) ── */
+.md-body { font-size: 13px; line-height: 1.7; color: #2a2a3e; }
+.md-body h1 { font-size: 17px; font-weight: 700; margin-bottom: 12px; color: #1a1a2e; }
+.md-body h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #a8a39a; margin-top: 22px; margin-bottom: 8px; }
+.md-body h3 { font-size: 13px; font-weight: 600; color: #3a3a5a; margin-top: 16px; margin-bottom: 6px; }
+.md-body p  { margin-bottom: 10px; }
+.md-body ul, .md-body ol { padding-left: 18px; margin-bottom: 10px; }
+.md-body li { margin-bottom: 4px; }
+.md-body strong { font-weight: 600; color: #1a1a2e; }
+.md-body em { font-style: italic; color: #6b6560; }
+.md-body hr { border: none; border-top: 1px solid #e8e4dd; margin: 18px 0; }
+.md-body code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px; background: #f0ede8; border-radius: 4px; padding: 1px 5px; color: #5a5560; }
+.md-body pre  { background: #f0ede8; border-radius: 7px; padding: 12px 14px; overflow-x: auto; margin-bottom: 10px; }
+.md-body pre code { background: none; padding: 0; }

@@ -1,6 +1,11 @@
 import { useRef, useMemo, useState, useCallback } from 'react';
 import Canvas from './components/Canvas.jsx';
 import Timeline, { DAY_WIDTH, PAST_DAYS } from './components/Timeline.jsx';
+import WeeklyPriorities, { PRIORITIES_H } from './components/WeeklyPriorities.jsx';
+import ProjectModal from './components/ProjectModal.jsx';
+import { projectDocs } from './data/projectDocs.js';
+import OkrPanel, { OKR_W } from './components/OkrPanel.jsx';
+import FocusOverlay from './components/FocusOverlay.jsx';
 
 const TODAY_VIEWPORT_OFFSET = 200;
 const MIN_DAY_WIDTH = 6;
@@ -10,6 +15,8 @@ export default function App() {
   const canvasRef = useRef(null);
   const [dayWidth, setDayWidth] = useState(DAY_WIDTH);
   const dayWidthRef = useRef(DAY_WIDTH);
+  const [openBlock, setOpenBlock] = useState(null);
+  const [showFocus, setShowFocus] = useState(true);
 
   const initialX = useMemo(() => -(PAST_DAYS * DAY_WIDTH) + TODAY_VIEWPORT_OFFSET, []);
 
@@ -98,10 +105,23 @@ export default function App() {
         </div>
       </div>
 
+      {showFocus && <FocusOverlay onDismiss={() => setShowFocus(false)} />}
+
+      <OkrPanel />
+      <WeeklyPriorities />
+
+      {openBlock && (
+        <ProjectModal
+          block={openBlock}
+          content={projectDocs[openBlock.id] ?? ''}
+          onClose={() => setOpenBlock(null)}
+        />
+      )}
+
       {/* Pannable canvas */}
-      <div style={{ paddingTop: 48, height: '100vh' }}>
+      <div style={{ paddingTop: 48 + PRIORITIES_H, paddingLeft: OKR_W, height: '100vh' }}>
         <Canvas ref={canvasRef} initialX={initialX} initialY={0} onZoom={onZoom}>
-          <Timeline dayWidth={dayWidth} />
+          <Timeline dayWidth={dayWidth} onBlockOpen={setOpenBlock} />
         </Canvas>
       </div>
     </div>
