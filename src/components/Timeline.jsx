@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import Block from './Block.jsx';
 import { blocks, offPeriods } from '../data/workload.js';
+import { objectives } from '../data/okrs.js';
 
 // ─── Layout constants ───────────────────────────────────────────────────────
 export const DAY_WIDTH = 40;       // default px per day (used for initial offset calc)
@@ -91,6 +92,15 @@ export default function Timeline({ dayWidth = DAY_WIDTH, onBlockOpen }) {
     ? HEADER_H + PADDING_TOP + PERSONAL_ROW_START * ROW_H + SEPARATOR_EXTRA / 2
     : null;
 
+  // Set of block IDs that belong to a completed objective
+  const completedBlockIds = useMemo(() => {
+    const ids = new Set();
+    objectives.forEach((obj) => {
+      if (obj.completed) (obj.blockIds ?? []).forEach((id) => ids.add(id));
+    });
+    return ids;
+  }, []);
+
   // Compute absolute positions for each block
   const positionedBlocks = useMemo(() => {
     return blocks.map((block) => {
@@ -105,6 +115,7 @@ export default function Timeline({ dayWidth = DAY_WIDTH, onBlockOpen }) {
         left: startIdx * dayWidth,
         width: spanDays * dayWidth,
         top: HEADER_H + PADDING_TOP + block.row * ROW_H + extra + (ROW_H - BLOCK_H) / 2,
+        completed: completedBlockIds.has(block.id),
       };
     });
   }, [startDate, dayWidth]);

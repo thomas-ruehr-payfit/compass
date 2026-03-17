@@ -143,7 +143,7 @@ export const objectives = [
 | O5 Processor migration | `#64748b` (slate) |
 | O6 JetLang unit testing ✓ | `#06b6d4` (cyan) |
 | O7 Compliance testing ✓ | `#f97316` (orange) |
-| O8 CDMS ✓ | `#e11d48` (rose) |
+| O8 CDMS | `#e11d48` (rose) |
 | O9 Personal | `#ec4899` (pink) |
 
 ---
@@ -266,9 +266,25 @@ totalHeight = HEADER_H + PADDING_TOP + maxRow × ROW_H
 | ≥ 8 px | Every 10th day |
 | < 8 px | None (only today marker) |
 
+**Completed block detection** — Timeline imports `objectives` from `okrs.js` and builds a `completedBlockIds` Set at render time (all `blockIds` of objectives where `completed === true`). Each positioned block receives a `completed` boolean derived from this set, which `Block` uses for its visual treatment.
+
 **Out-of-office bands** — For each entry in `offPeriods`, a band is rendered from `top: 0` to `totalHeight`. It has two layers: a diagonal-hatch fill covering only the content area (below `HEADER_H`), and a label pill pinned flush to `HEADER_H` (touching the day-number row border).
 
 **Personal stream separator** — A 1 px horizontal rule is drawn at `HEADER_H + PADDING_TOP + PERSONAL_ROW_START × ROW_H + SEPARATOR_EXTRA / 2` when any block with `row >= 4` exists.
+
+---
+
+### Block — `src/components/Block.jsx`
+
+Renders one absolutely-positioned block. Receives pre-computed `left`, `top`, `width`, and `completed` from Timeline.
+
+- Labels are hidden (`tooNarrow = width < 60 px`) when the block is too narrow to fit text.
+- On hover: opacity increases, a coloured glow appears, and a tooltip shows name, date range, and duration.
+- On click: calls `onOpen(block)` — `data-no-pan` prevents the click from starting a canvas drag.
+
+**Completed state** — when `block.completed === true` (derived from its parent objective in Timeline):
+- Base opacity drops to 0.35 (vs 0.88 for active blocks); hover lifts it to 0.55.
+- A white diagonal hatch overlay (`repeating-linear-gradient 135°`) is layered inside the block, reinforcing the "done" state while keeping the colour recognisable.
 
 ---
 

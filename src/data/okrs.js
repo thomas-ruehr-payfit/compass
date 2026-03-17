@@ -110,10 +110,9 @@ export const objectives = [
     id: 'okr-cdms',
     title: 'Contribute to the CDMS project',
     color: '#e11d48',
-    completed: true,
     blockIds: ['cdms'],
     keyResults: [
-      { id: 'kr-cd1', text: 'Share a prioritization of JTBD with recommendation for the information hierarchy of the CDMS dashboard', done: true },
+      { id: 'kr-cd1', text: 'Share a prioritization of JTBD with recommendation for the information hierarchy of the CDMS dashboard' },
     ],
   },
   {

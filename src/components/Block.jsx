@@ -18,6 +18,11 @@ export default function Block({ block, height, onOpen }) {
   const [hovered, setHovered] = useState(false);
   const days = dayCount(block.start, block.end);
   const tooNarrow = block.width < 60;
+  const { completed } = block;
+
+  // Completed blocks are dimmed; hovering restores them slightly for tooltip access
+  const baseOpacity = completed ? 0.35 : 0.88;
+  const hoverOpacity = completed ? 0.55 : 1;
 
   return (
     <div
@@ -31,7 +36,7 @@ export default function Block({ block, height, onOpen }) {
         height,
         borderRadius: 7,
         background: block.color,
-        opacity: hovered ? 1 : 0.88,
+        opacity: hovered ? hoverOpacity : baseOpacity,
         display: 'flex',
         alignItems: 'center',
         paddingLeft: tooNarrow ? 4 : 10,
@@ -43,7 +48,7 @@ export default function Block({ block, height, onOpen }) {
         overflow: 'hidden',
         whiteSpace: 'nowrap',
         textOverflow: 'ellipsis',
-        transition: 'opacity 0.12s ease, box-shadow 0.12s ease',
+        transition: 'opacity 0.15s ease, box-shadow 0.12s ease',
         boxShadow: hovered
           ? `0 4px 20px ${block.color}44, 0 1px 4px rgba(0,0,0,0.12)`
           : `0 2px 8px rgba(0,0,0,0.12)`,
@@ -53,6 +58,17 @@ export default function Block({ block, height, onOpen }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Diagonal hatch overlay for completed blocks */}
+      {completed && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: 7,
+          background: 'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 8px)',
+          pointerEvents: 'none',
+        }} />
+      )}
+
       {!tooNarrow && block.label}
 
       {hovered && (
