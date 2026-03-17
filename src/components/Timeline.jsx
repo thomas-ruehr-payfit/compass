@@ -1,19 +1,24 @@
 import { useMemo } from 'react';
 import Block from './Block.jsx';
-import { blocks } from '../data/workload.js';
+import { blocks, offPeriods } from '../data/workload.js';
 
 // ─── Layout constants ───────────────────────────────────────────────────────
 export const DAY_WIDTH = 40;       // default px per day (used for initial offset calc)
 const MONTH_ROW_H = 34;            // height of month label row
 const DAY_ROW_H = 26;              // height of day-number row
 export const HEADER_H = MONTH_ROW_H + DAY_ROW_H;
-const ROW_H = 54;                  // height per project row
+export const ROW_H = 54;           // height per project row
 const BLOCK_H = 38;                // height of a block
-const PADDING_TOP = 16;            // padding above first row
-const PADDING_BOTTOM = 60;         // extra space below last row
+export const PADDING_TOP = 16;     // padding above first row
+export const PADDING_BOTTOM = 60;  // extra space below last row
+
+// ─── Personal stream separator ───────────────────────────────────────────────
+// Rows with index >= PERSONAL_ROW_START are drawn below an extra gap + divider.
+export const PERSONAL_ROW_START = 4;
+export const SEPARATOR_EXTRA = 40; // extra vertical space reserved for the divider
 
 // ─── Timeline date range ─────────────────────────────────────────────────────
-export const PAST_DAYS = 14;       // days to show before today
+export const PAST_DAYS = 75;       // days to show before today (back to early Jan)
 const FUTURE_DAYS = 200;           // days to show after today
 export const TOTAL_DAYS = PAST_DAYS + FUTURE_DAYS;
 
@@ -68,12 +73,23 @@ export default function Timeline({ dayWidth = DAY_WIDTH, onBlockOpen }) {
     [],
   );
 
+  const hasPersonalRows = maxRow > PERSONAL_ROW_START;
+
   const totalWidth = TOTAL_DAYS * dayWidth;
-  const totalHeight = HEADER_H + PADDING_TOP + maxRow * ROW_H + PADDING_BOTTOM;
+  const totalHeight =
+    HEADER_H + PADDING_TOP +
+    maxRow * ROW_H +
+    (hasPersonalRows ? SEPARATOR_EXTRA : 0) +
+    PADDING_BOTTOM;
   const todayIdx = PAST_DAYS;
 
   // Show day numbers more densely when zoomed in, sparsely when zoomed out
   const dayLabelInterval = dayWidth >= 30 ? 1 : dayWidth >= 15 ? 5 : dayWidth >= 8 ? 10 : 0;
+
+  // Y position of the separator line (midpoint of the gap before personal rows)
+  const separatorY = hasPersonalRows
+    ? HEADER_H + PADDING_TOP + PERSONAL_ROW_START * ROW_H + SEPARATOR_EXTRA / 2
+    : null;
 
   // Compute absolute positions for each block
   const positionedBlocks = useMemo(() => {
@@ -83,11 +99,12 @@ export default function Timeline({ dayWidth = DAY_WIDTH, onBlockOpen }) {
       const startIdx = daysBetween(startDate, s);
       const endIdx = daysBetween(startDate, e);
       const spanDays = endIdx - startIdx + 1;
+      const extra = block.row >= PERSONAL_ROW_START ? SEPARATOR_EXTRA : 0;
       return {
         ...block,
         left: startIdx * dayWidth,
         width: spanDays * dayWidth,
-        top: HEADER_H + PADDING_TOP + block.row * ROW_H + (ROW_H - BLOCK_H) / 2,
+        top: HEADER_H + PADDING_TOP + block.row * ROW_H + extra + (ROW_H - BLOCK_H) / 2,
       };
     });
   }, [startDate, dayWidth]);
@@ -252,7 +269,76 @@ export default function Timeline({ dayWidth = DAY_WIDTH, onBlockOpen }) {
         }}
       />
 
-      {/* Row separators intentionally omitted — rows only exist where blocks overlap */}
+      {/* ── Out-of-office bands ── */}
+      {offPeriods.map((period) => {
+        const s = new Date(period.start + 'T00:00:00');
+        const e = new Date(period.end + 'T00:00:00');
+        const startIdx = daysBetween(startDate, s);
+        const endIdx = daysBetween(startDate, e);
+        const spanDays = endIdx - startIdx + 1;
+        const left = startIdx * dayWidth;
+        const width = spanDays * dayWidth;
+        return (
+          <div key={period.id} style={{ position: 'absolute', top: 0, left, width, height: totalHeight, pointerEvents: 'none', zIndex: 4 }}>
+            {/* Shaded fill — content area only */}
+            <div
+              style={{
+                position: 'absolute',
+                top: HEADER_H,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'repeating-linear-gradient(135deg, transparent, transparent 5px, rgba(0,0,0,0.025) 5px, rgba(0,0,0,0.025) 10px)',
+                backgroundColor: 'rgba(180,170,155,0.08)',
+              }}
+            />
+            {/* Label — pinned to the top of the hatched area, centred horizontally */}
+            <div
+              style={{
+                position: 'absolute',
+                top: HEADER_H,
+                left: 0,
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: '#b0a898',
+                  background: 'rgba(255,254,251,0.9)',
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  border: '1px solid #e0dbd2',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {period.label}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* ── Personal stream separator ── */}
+      {separatorY !== null && (
+        <div
+          style={{
+            position: 'absolute',
+            top: separatorY,
+            left: 0,
+            width: totalWidth,
+            height: 1,
+            background: '#e0dbd2',
+            pointerEvents: 'none',
+            zIndex: 3,
+          }}
+        />
+      )}
 
       {/* ── Project blocks ── */}
       {positionedBlocks.map((block) => (

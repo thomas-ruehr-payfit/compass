@@ -1,31 +1,75 @@
 import { useRef, useMemo, useState, useCallback } from 'react';
 import Canvas from './components/Canvas.jsx';
-import Timeline, { DAY_WIDTH, PAST_DAYS } from './components/Timeline.jsx';
-import WeeklyPriorities, { PRIORITIES_H } from './components/WeeklyPriorities.jsx';
+import Timeline, {
+  DAY_WIDTH, PAST_DAYS,
+  HEADER_H, ROW_H, PADDING_TOP, PADDING_BOTTOM, SEPARATOR_EXTRA, PERSONAL_ROW_START,
+} from './components/Timeline.jsx';
+import { blocks } from './data/workload.js';
 import ProjectModal from './components/ProjectModal.jsx';
 import { projectDocs } from './data/projectDocs.js';
 import OkrPanel, { OKR_W } from './components/OkrPanel.jsx';
-import FocusOverlay from './components/FocusOverlay.jsx';
+import WeekView from './components/WeekView.jsx';
 
 const TODAY_VIEWPORT_OFFSET = 200;
 const MIN_DAY_WIDTH = 6;
 const MAX_DAY_WIDTH = 160;
+const NAV_H = 48; // fixed header height
+
+// Compute the static total height of the timeline to derive a centered initialY
+const _maxRow = blocks.length === 0 ? 1 : Math.max(...blocks.map((b) => b.row)) + 1;
+const _hasPersonal = _maxRow > PERSONAL_ROW_START;
+const TIMELINE_H = HEADER_H + PADDING_TOP + _maxRow * ROW_H + (_hasPersonal ? SEPARATOR_EXTRA : 0) + PADDING_BOTTOM;
+const INITIAL_Y = Math.max(0, Math.round((window.innerHeight - NAV_H - TIMELINE_H) / 2));
+
+const TAB_STYLE_BASE = {
+  fontSize: 12,
+  fontWeight: 500,
+  padding: '5px 14px',
+  borderRadius: 6,
+  border: '1px solid transparent',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  letterSpacing: '0.02em',
+  transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+};
+
+function Tab({ label, active, onClick }) {
+  return (
+    <button
+      data-no-pan
+      onClick={onClick}
+      style={{
+        ...TAB_STYLE_BASE,
+        background: active ? 'rgba(99,102,241,0.10)' : 'transparent',
+        color: active ? '#6366f1' : '#9a948e',
+        borderColor: active ? 'rgba(99,102,241,0.25)' : 'transparent',
+      }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.background = 'rgba(0,0,0,0.04)';
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.background = 'transparent';
+      }}
+    >
+      {label}
+    </button>
+  );
+}
 
 export default function App() {
   const canvasRef = useRef(null);
   const [dayWidth, setDayWidth] = useState(DAY_WIDTH);
   const dayWidthRef = useRef(DAY_WIDTH);
   const [openBlock, setOpenBlock] = useState(null);
-  const [showFocus, setShowFocus] = useState(true);
+  const [activeTab, setActiveTab] = useState('week');
 
   const initialX = useMemo(() => -(PAST_DAYS * DAY_WIDTH) + TODAY_VIEWPORT_OFFSET, []);
+  const initialY = INITIAL_Y;
 
   function goToToday() {
     canvasRef.current?.reset(-(PAST_DAYS * dayWidthRef.current) + TODAY_VIEWPORT_OFFSET, 0);
   }
 
-  // Called by Canvas when a pinch-to-zoom (ctrl+wheel) is detected.
-  // Adjusts dayWidth and translates so the point under the cursor stays fixed.
   const onZoom = useCallback((deltaY, cursorX) => {
     const factor = 1 - deltaY * 0.012;
     const prev = dayWidthRef.current;
@@ -33,7 +77,6 @@ export default function App() {
     if (next === prev) return;
 
     const { x: tx, y: ty } = canvasRef.current?.getTranslate() ?? { x: 0, y: 0 };
-    // Keep the day under cursorX fixed: newTx = cursorX - (cursorX - tx) * (next / prev)
     const newTx = cursorX - (cursorX - tx) * (next / prev);
 
     dayWidthRef.current = next;
@@ -42,7 +85,7 @@ export default function App() {
   }, []);
 
   return (
-    <div style={{ width: '100%', height: '100vh', background: '#fffefb', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100vh', background: '#fffefb', position: 'relative', display: 'flex', flexDirection: 'column' }}>
       {/* Header bar */}
       <div
         style={{
@@ -62,53 +105,50 @@ export default function App() {
           zIndex: 100,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: '#6366f1',
-              boxShadow: '0 0 8px #6366f166',
-            }}
-          />
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1a2e', letterSpacing: '0.02em' }}>
-            Compass
-          </span>
+        {/* Left: logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <svg width="87" height="24" viewBox="0 0 87 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M82.0403 22C80.63 22 79.5634 21.6033 78.8406 20.81C78.1178 19.999 77.7563 18.8443 77.7563 17.3458V16.288H80.5066V17.5573C80.5066 18.7561 81.009 19.3556 82.0139 19.3556C82.5075 19.3556 82.8778 19.2145 83.1246 18.9324C83.389 18.6327 83.5212 18.1567 83.5212 17.5044C83.5212 16.7287 83.3449 16.05 82.9923 15.4682C82.6398 14.8688 81.9875 14.1548 81.0355 13.3262C79.8366 12.2684 78.9992 11.3164 78.5232 10.4702C78.0472 9.60637 77.8092 8.63674 77.8092 7.56133C77.8092 6.09807 78.1795 4.96978 78.9199 4.17644C79.6603 3.36548 80.7358 2.96 82.1461 2.96C83.5389 2.96 84.5878 3.36548 85.293 4.17644C86.0158 4.96978 86.3772 6.1157 86.3772 7.61422V8.38111H83.627V7.42911C83.627 6.79444 83.5036 6.33607 83.2568 6.054C83.01 5.7543 82.6486 5.60444 82.1726 5.60444C81.2029 5.60444 80.7181 6.19504 80.7181 7.37622C80.7181 8.04615 80.8944 8.672 81.247 9.25378C81.6172 9.83555 82.2783 10.5407 83.2304 11.3693C84.4468 12.4271 85.2842 13.3879 85.7426 14.2518C86.2009 15.1156 86.4301 16.1293 86.4301 17.2929C86.4301 18.809 86.0511 19.9726 85.293 20.7836C84.5526 21.5945 83.4683 22 82.0403 22Z" fill="#1a1a2e"/>
+            <path d="M72.201 22C70.7906 22 69.724 21.6033 69.0012 20.81C68.2784 19.999 67.917 18.8443 67.917 17.3458V16.288H70.6672V17.5573C70.6672 18.7561 71.1697 19.3556 72.1746 19.3556C72.6682 19.3556 73.0384 19.2145 73.2852 18.9324C73.5497 18.6327 73.6819 18.1567 73.6819 17.5044C73.6819 16.7287 73.5056 16.05 73.153 15.4682C72.8004 14.8688 72.1481 14.1548 71.1961 13.3262C69.9973 12.2684 69.1599 11.3164 68.6839 10.4702C68.2079 9.60637 67.9699 8.63674 67.9699 7.56133C67.9699 6.09807 68.3401 4.96978 69.0805 4.17644C69.821 3.36548 70.8964 2.96 72.3068 2.96C73.6995 2.96 74.7485 3.36548 75.4537 4.17644C76.1765 4.96978 76.5379 6.1157 76.5379 7.61422V8.38111H73.7877V7.42911C73.7877 6.79444 73.6642 6.33607 73.4174 6.054C73.1706 5.7543 72.8092 5.60444 72.3332 5.60444C71.3636 5.60444 70.8788 6.19504 70.8788 7.37622C70.8788 8.04615 71.0551 8.672 71.4077 9.25378C71.7779 9.83555 72.439 10.5407 73.391 11.3693C74.6074 12.4271 75.4448 13.3879 75.9032 14.2518C76.3616 15.1156 76.5908 16.1293 76.5908 17.2929C76.5908 18.809 76.2117 19.9726 75.4537 20.7836C74.7132 21.5945 73.629 22 72.201 22Z" fill="#1a1a2e"/>
+            <path d="M60.1314 3.22444H64.0716L67.0863 21.7356H64.1774L63.6485 18.0598V18.1127H60.3429L59.814 21.7356H57.1167L60.1314 3.22444ZM63.3047 15.6004L62.0089 6.45067H61.956L60.6867 15.6004H63.3047Z" fill="#1a1a2e"/>
+            <path d="M48.6123 3.22444H52.8963C54.3419 3.22444 55.4262 3.61229 56.149 4.388C56.8718 5.1637 57.2332 6.30081 57.2332 7.79933V9.624C57.2332 11.1225 56.8718 12.2596 56.149 13.0353C55.4262 13.811 54.3419 14.1989 52.8963 14.1989H51.5212V21.7356H48.6123V3.22444ZM52.8963 11.5544C53.3723 11.5544 53.7249 11.4222 53.9541 11.1578C54.2009 10.8933 54.3243 10.4438 54.3243 9.80911V7.61422C54.3243 6.97955 54.2009 6.53 53.9541 6.26555C53.7249 6.00111 53.3723 5.86889 52.8963 5.86889H51.5212V11.5544H52.8963Z" fill="#1a1a2e"/>
+            <path d="M34.3828 3.22444H38.5346L40.3857 16.4731H40.4386L42.2897 3.22444H46.4415V21.7356H43.6913V7.72H43.6384L41.5228 21.7356H39.0899L36.9744 7.72H36.9215V21.7356H34.3828V3.22444Z" fill="#1a1a2e"/>
+            <path d="M4.284 22C2.89126 22 1.82467 21.6033 1.08422 20.81C0.361407 20.0167 0 18.8972 0 17.4516V7.50844C0 6.06281 0.361407 4.94333 1.08422 4.15C1.82467 3.35667 2.89126 2.96 4.284 2.96C5.67674 2.96 6.73452 3.35667 7.45733 4.15C8.19778 4.94333 8.568 6.06281 8.568 7.50844V9.46533H5.81778V7.32333C5.81778 6.17741 5.33296 5.60444 4.36333 5.60444C3.3937 5.60444 2.90889 6.17741 2.90889 7.32333V17.6631C2.90889 18.7914 3.3937 19.3556 4.36333 19.3556C5.33296 19.3556 5.81778 18.7914 5.81778 17.6631V14.8336H8.568V17.4516C8.568 18.8972 8.19778 20.0167 7.45733 20.81C6.73452 21.6033 5.67674 22 4.284 22Z" fill="#1a1a2e"/>
+            <path d="M28.0412 5.14286L23.9441 6.89914L21.1841 0L18.4241 6.89914L14.3269 5.14286L16.0832 9.23914L9.18408 12L16.0832 14.7591L14.3269 18.8571L18.4241 17.1009L21.1841 24L23.9441 17.1009L28.0412 18.8571L26.2849 14.7591L33.1841 12L26.2849 9.24L28.0412 5.14286ZM21.1841 14.5714C19.7638 14.5714 18.6127 13.4194 18.6127 12C18.6127 10.5789 19.7638 9.42857 21.1841 9.42857C22.6044 9.42857 23.7555 10.5789 23.7555 12C23.7555 13.4194 22.6044 14.5714 21.1841 14.5714Z" fill="#F5C126"/>
+          </svg>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: '#b0aaa0', marginRight: 4 }}>
-            drag to pan · pinch to zoom
-          </span>
-          <button
-            data-no-pan
-            onClick={goToToday}
-            style={{
-              background: 'rgba(239,68,68,0.08)',
-              border: '1px solid rgba(239,68,68,0.22)',
-              borderRadius: 6,
-              color: '#f87171',
-              fontSize: 12,
-              fontWeight: 500,
-              padding: '5px 12px',
-              cursor: 'pointer',
-              transition: 'background 0.15s',
-              fontFamily: 'inherit',
-              letterSpacing: '0.02em',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.15)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
-          >
-            Today
-          </button>
+        {/* Centre: tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Tab label="This Week" active={activeTab === 'week'} onClick={() => setActiveTab('week')} />
+          <Tab label="Timeline" active={activeTab === 'timeline'} onClick={() => setActiveTab('timeline')} />
+        </div>
+
+        {/* Right: timeline-only controls */}
+        <div style={{ minWidth: 120 }}>
+          {activeTab === 'timeline' && (
+            <span style={{ fontSize: 11, color: '#b0aaa0' }}>
+              drag to pan · pinch to zoom
+            </span>
+          )}
         </div>
       </div>
 
-      {showFocus && <FocusOverlay onDismiss={() => setShowFocus(false)} />}
-
-      <OkrPanel />
-      <WeeklyPriorities />
+      {/* Body — sits below the fixed header */}
+      <div style={{ paddingTop: 48, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        {activeTab === 'week' ? (
+          <WeekView />
+        ) : (
+          <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+            <OkrPanel />
+            <div style={{ paddingLeft: OKR_W, flex: 1, height: '100%' }}>
+              <Canvas ref={canvasRef} initialX={initialX} initialY={initialY} onZoom={onZoom}>
+                <Timeline dayWidth={dayWidth} onBlockOpen={setOpenBlock} />
+              </Canvas>
+            </div>
+          </div>
+        )}
+      </div>
 
       {openBlock && (
         <ProjectModal
@@ -117,13 +157,6 @@ export default function App() {
           onClose={() => setOpenBlock(null)}
         />
       )}
-
-      {/* Pannable canvas */}
-      <div style={{ paddingTop: 48 + PRIORITIES_H, paddingLeft: OKR_W, height: '100vh' }}>
-        <Canvas ref={canvasRef} initialX={initialX} initialY={0} onZoom={onZoom}>
-          <Timeline dayWidth={dayWidth} onBlockOpen={setOpenBlock} />
-        </Canvas>
-      </div>
     </div>
   );
 }

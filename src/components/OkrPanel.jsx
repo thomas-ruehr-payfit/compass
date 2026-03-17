@@ -1,6 +1,8 @@
 import { objectives } from '../data/okrs.js';
 
-export const OKR_W = 260;
+export const OKR_W = 300;
+
+const sortedObjectives = [...objectives].sort((a, b) => (a.completed ? 1 : 0) - (b.completed ? 1 : 0));
 
 export default function OkrPanel() {
   return (
@@ -37,7 +39,7 @@ export default function OkrPanel() {
 
       {/* Objectives list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 0 20px' }}>
-        {objectives.map((obj) => (
+        {sortedObjectives.map((obj) => (
           <div key={obj.id} style={{ padding: '0 12px' }}>
             {/* Objective row */}
             <div
@@ -62,16 +64,43 @@ export default function OkrPanel() {
                 }}
               />
               <div style={{ minWidth: 0 }}>
+                {/* Title row */}
                 <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: '#2a2a3e',
-                    lineHeight: 1.45,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 6,
                     marginBottom: obj.keyResults.length > 0 ? 6 : 0,
                   }}
                 >
-                  {obj.title}
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: obj.completed ? '#9a948e' : '#2a2a3e',
+                      lineHeight: 1.45,
+                      flex: 1,
+                    }}
+                  >
+                    {obj.title}
+                  </span>
+                  {obj.completed && (
+                    <div
+                      style={{
+                        flexShrink: 0,
+                        marginTop: 2,
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: obj.color,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <span style={{ color: '#fff', fontSize: 9, fontWeight: 800, lineHeight: 1 }}>✓</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Key results */}
@@ -81,26 +110,29 @@ export default function OkrPanel() {
                     style={{
                       display: 'flex',
                       alignItems: 'flex-start',
-                      gap: 6,
-                      marginBottom: 4,
+                      gap: 7,
+                      marginBottom: 5,
                     }}
                   >
-                    <span
+                    <div
                       style={{
-                        fontSize: 10,
-                        color: obj.color,
-                        marginTop: 2,
+                        width: 9,
+                        height: 9,
+                        borderRadius: '50%',
+                        background: kr.done ? obj.color : 'transparent',
+                        border: `1.5px solid ${obj.color}`,
                         flexShrink: 0,
-                        opacity: 0.7,
+                        marginTop: 3,
+                        opacity: kr.done ? 0.9 : 0.45,
+                        boxSizing: 'border-box',
                       }}
-                    >
-                      ↳
-                    </span>
+                    />
                     <span
                       style={{
-                        fontSize: 10,
-                        color: '#9a948e',
+                        fontSize: 12,
+                        color: kr.done ? '#b0aaa0' : '#9a948e',
                         lineHeight: 1.5,
+                        textDecoration: kr.done ? 'line-through' : 'none',
                       }}
                     >
                       {kr.text}

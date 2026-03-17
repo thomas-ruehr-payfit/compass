@@ -67,7 +67,9 @@ const Canvas = forwardRef(function Canvas({ children, initialX = 0, initialY = 0
     if (containerRef.current) containerRef.current.style.cursor = 'grab';
   }, []);
 
-  // Support trackpad / mouse wheel — ctrlKey means pinch-to-zoom on macOS
+  // Support trackpad / mouse wheel — ctrlKey means pinch-to-zoom on macOS.
+  // Must be attached via addEventListener with { passive: false } so that
+  // e.preventDefault() is actually respected (React's onWheel prop is passive).
   const onWheel = useCallback((e) => {
     e.preventDefault();
     if (e.ctrlKey) {
@@ -84,6 +86,13 @@ const Canvas = forwardRef(function Canvas({ children, initialX = 0, initialY = 0
     }
   }, []);
 
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [onWheel]);
+
   return (
     <div
       ref={containerRef}
@@ -91,7 +100,6 @@ const Canvas = forwardRef(function Canvas({ children, initialX = 0, initialY = 0
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
-      onWheel={onWheel}
       style={{
         width: '100%',
         height: '100vh',
